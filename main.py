@@ -17,7 +17,7 @@ st.markdown("""
     .compliance-badge {background-color: #E0F2FE; color: #0369A1; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: bold;}
     .crypto-box {background-color: #F8FAFC; border: 1px solid #E2E8F0; padding: 15px; border-radius: 8px; font-family: 'Courier New';}
     </style>
-    """, unsafe_style_allowed=True)
+    """, unsafe_allow_html=True)
 
 # --- BACKEND SECURITY & ARCHITECTURE MODULES ---
 
@@ -60,8 +60,8 @@ DatabaseManager.initialize_pipeline_database()
 
 # --- FRONTEND USER INTERFACE (100% ENGLISH FOR ACADEMIC JURY) ---
 
-st.markdown('<div class="system-title">🛡️ MAFIS Architectural Pipeline — Phase 1</div>', unsafe_style_allowed=True)
-st.markdown('<span class="compliance-badge">🔒 Compliant with Rwanda Data Protection Law N° 058/2021</span>', unsafe_style_allowed=True)
+st.markdown('<div class="system-title">🛡️ MAFIS Architectural Pipeline — Phase 1</div>', unsafe_allow_html=True)
+st.markdown('<span class="compliance-badge">🔒 Compliant with Rwanda Data Protection Law N° 058/2021</span>', unsafe_allow_html=True)
 st.markdown("---")
 
 # Layout Split: Left for Ingestion & Hashing, Right for Database Audit Logs
@@ -100,7 +100,7 @@ with col_input:
     <strong>SHA-256 Hash Function:</strong> f(x) = SHA256(phone)<br>
     <strong>Generated Identity Token:</strong> <span style='color:#10B981; font-weight:bold;'>{generated_token}</span>
     </div>
-    """, unsafe_style_allowed=True)
+    """, unsafe_allow_html=True)
     
     if st.button("⚡ Secure and Commit Record to Core Database"):
         prefix = phone_input[:3]
