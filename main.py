@@ -1,129 +1,134 @@
 import streamlit as st
 import pandas as pd
 import hashlib
+import re
 from datetime import datetime
 
-# --- SYSTEM CONFIGURATION & COMPLIANCE THEME ---
+# --- CONFIGURATION DU SYSTÈME ---
 st.set_page_config(
-    page_title="MAFIS - Phase 1: Security Layer", 
+    page_title="MAFIS - Core Pipeline", 
     page_icon="🛡️", 
     layout="wide"
 )
 
-# Custom CSS for Professional FinTech Corporate Appearance
+# Style CSS pour une interface FinTech Professionnelle
 st.markdown("""
     <style>
     .system-title {font-size: 30px; font-weight: bold; color: #1E3A8A; font-family: 'Arial';}
     .compliance-badge {background-color: #E0F2FE; color: #0369A1; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: bold;}
     .crypto-box {background-color: #F8FAFC; border: 1px solid #E2E8F0; padding: 15px; border-radius: 8px; font-family: 'Courier New';}
+    .regex-success {color: #10B981; font-weight: bold;}
+    .fee-alert {color: #EF4444; font-weight: bold;}
     </style>
-    """, unsafe_allow_html=True)
+    """, unsafe_style_allowed=True)
 
-# --- BACKEND SECURITY & ARCHITECTURE MODULES ---
-
-class DataProtectionService:
+class SemanticExtractor:
     """
-    Cryptographic Tokenization Engine complying with Rwanda Data Protection Law N° 058/2021.
-    Converts nominative PII (Personally Identifiable Information) into anonymous irreversible hashes.
+    Moteur d'expressions régulières (Regex) calibré pour les SMS de MTN MoMo et Airtel Money à Kigali.
     """
     @staticmethod
-    def generate_sha256_token(phone_number: str) -> str:
-        clean_input = str(phone_number).strip()
-        hash_object = hashlib.sha256(clean_input.encode('utf-8'))
-        hex_dig = hash_object.hexdigest()
-        return f"MSME-{hex_dig[:12].upper()}"
-
-class DatabaseManager:
-    """
-    Stateful In-Memory Relational Database Architecture.
-    Persists data across client-side interactions using Streamlit SessionState.
-    """
-    @staticmethod
-    def initialize_pipeline_database():
-        if "mafis_ledger" not in st.session_state:
-            st.session_state.mafis_ledger = []
+    def calculate_p2p_transfer_fee(amount: int) -> int:
+        """Applique la grille tarifaire réelle du Rwanda pour les transferts directs (sans code)"""
+        if amount < 10000:
+            return 100
+        elif amount < 150000:
+            return 250
+        else:
+            return 1500
 
     @staticmethod
-    def commit_merchant_record(token: str, sector: str, duration: int):
-        record = {
-            "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "Security_Token": token,
-            "Business_Sector": sector,
-            "Operational_Duration_Months": duration,
-            "Database_Status": "COMMITTED & LOCKED"
+    def parse_sms(sms_text: str):
+        # Patterns Regex pour capturer les données clés dans les structures réelles reçues
+        txid_match = re.search(r"(?:FT Id:|TxId:)\s*([A-Za-z0-9\-]+)", sms_text, re.IGNORECASE)
+        amount_match = re.search(r"(?:transaction of|payment of)\s*([0-9\s,]+)\s*RWF", sms_text, re.IGNORECASE)
+        balance_match = re.search(r"Balance:\s*([0-9\s,]+)\s*RWF", sms_text, re.IGNORECASE)
+        fee_match = re.search(r"Fee\s*([0-9\s,]+)\s*RWF", sms_text, re.IGNORECASE)
+
+        def clean_int(match):
+            if match:
+                return int(match.group(1).replace(",", "").replace(" ", ""))
+            return 0
+
+        txid = txid_match.group(1) if txid_match else "NOT_FOUND"
+        amount = clean_int(amount_match)
+        balance = clean_int(balance_match)
+        extracted_fee = clean_int(fee_match)
+        
+        # Analyse sémantique intelligente de la nature du flux financier
+        if "received" in sms_text.lower() or "transaction of" in sms_text.lower():
+            tx_type = "Cash In (Réception - Gratuit)"
+            transfer_fee = 0
+        elif "payment of" in sms_text.lower() and any(x in sms_text.lower() for x in ["ltd", "inc", "code"]):
+            tx_type = "Merchant Payment (Code MoMo - Gratuit)"
+            transfer_fee = 0
+        else:
+            tx_type = "P2P Transfer (Transfert direct sans code)"
+            transfer_fee = SemanticExtractor.calculate_p2p_transfer_fee(amount)
+
+        return {
+            "TxID": txid,
+            "Type": tx_type,
+            "Amount": amount,
+            "SMS_Stated_Fee": extracted_fee,
+            "Applied_Transfer_Fee": transfer_fee,
+            "Balance": balance
         }
-        st.session_state.mafis_ledger.append(record)
 
-# --- INITIALIZE DATABASE CORES ---
-DatabaseManager.initialize_pipeline_database()
+# --- INITIALISATION DE LA BASE DE DONNÉES EN MÉMOIRE ---
+if "extracted_tx_logs" not in st.session_state:
+    st.session_state.extracted_tx_logs = []
 
-
-# --- FRONTEND USER INTERFACE (100% ENGLISH FOR ACADEMIC JURY) ---
-
-st.markdown('<div class="system-title">🛡️ MAFIS Architectural Pipeline — Phase 1</div>', unsafe_allow_html=True)
-st.markdown('<span class="compliance-badge">🔒 Compliant with Rwanda Data Protection Law N° 058/2021</span>', unsafe_allow_html=True)
+# --- INTERFACE GRAPHIQUE ---
+st.markdown('<div class="system-title">🛡️ MAFIS Architectural Pipeline — Phase 2</div>', unsafe_style_allowed=True)
+st.markdown('<span class="compliance-badge">🇷🇼 Calibrated for Rwanda Telecom Regulations & Banking Standards</span>', unsafe_style_allowed=True)
 st.markdown("---")
 
-# Layout Split: Left for Ingestion & Hashing, Right for Database Audit Logs
-col_input, col_ledger = st.columns([1, 1.2])
+col_sms, col_ledger = st.columns([1, 1.2])
 
-with col_input:
-    st.subheader("1. KYC & Data Ingestion Gateway")
+with col_sms:
+    st.subheader("Raw Text Stream Ingestion")
     
-    phone_input = st.text_input(
-        "Enter Raw Merchant Phone Number (MTN / Airtel):", 
-        value="0789427000", 
-        max_chars=10,
-        help="Inputs are tokenized in real-time. Raw numbers are never saved to the database ledger."
+    sample_type = st.radio(
+        "Load Real Kigali Transaction Logs:",
+        ["Exemple 1: Réception FDI (Gratuit)", "Exemple 2: Transfert direct à Anida (Sans code)", "Custom"]
     )
     
-    sector_input = st.selectbox(
-        "Select Enterprise Sector Category:",
-        ["Retail / Boutique", "Services / Salon", "Transport / Moto"]
-    )
+    if sample_type == "Exemple 1: Réception FDI (Gratuit)":
+        current_sms = "*164*S*Y'ello, A transaction of 500 RWF by FUTURE DYNAMIC INNOVATIONS (FDI) FUTURE DYNAMIC INLtd was completed at 2026-06-28 20:13:21. Balance:135963 RWF. Fee 0 RWF. FT Id: 28845768783.*EN#"
+    elif sample_type == "Exemple 2: Transfert direct à Anida (Sans code)":
+        current_sms = "TxId:28844417174*S*Your payment of 300 RWF to Anida 421426 was completed at 2026-06-28 19:23:57. Balance: 136,463 RWF. Fee 0 RWF.*EN#"
+    else:
+        current_sms = ""
+
+    sms_input = st.text_area("Paste Raw Operator SMS Stream:", value=current_sms, height=120)
     
-    duration_input = st.slider(
-        "Continuous Business Operation Seniority (Months):", 
-        min_value=1, 
-        max_value=60, 
-        value=12
-    )
-    
-    st.markdown("---")
-    st.subheader("2. Real-Time Cryptographic Execution")
-    
-    generated_token = DataProtectionService.generate_sha256_token(phone_input)
-    
-    st.markdown(f"""
-    <div class="crypto-box">
-    <strong>Raw Input PII:</strong> {phone_input}<br>
-    <strong>SHA-256 Hash Function:</strong> f(x) = SHA256(phone)<br>
-    <strong>Generated Identity Token:</strong> <span style='color:#10B981; font-weight:bold;'>{generated_token}</span>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    if st.button("⚡ Secure and Commit Record to Core Database"):
-        prefix = phone_input[:3]
-        if prefix not in ["078", "079", "072", "073"]:
-            st.error("Telecom Architecture Error: Invalid prefix. Must start with 078/079 (MTN) or 072/073 (Airtel).")
-        else:
-            DatabaseManager.commit_merchant_record(generated_token, sector_input, duration_input)
-            st.success("Data successfully encrypted and injected into the pipeline.")
+    if sms_input:
+        parsed = SemanticExtractor.parse_sms(sms_input)
+        
+        st.markdown("**Parser Extraction Output:**")
+        st.markdown(f"""
+        <div class="crypto-box">
+        🔑 <b>TxID Detected:</b> <span class="regex-success">{parsed['TxID']}</span><br>
+        📌 <b>Inferred Category:</b> <b>{parsed['Type']}</b><br>
+        💰 <b>Volume (Amount):</b> <span class="regex-success">{parsed['Amount']:,} RWF</span><br>
+        💸 <b>SMS Stated Fee:</b> {parsed['SMS_Stated_Fee']} RWF<br>
+        ⚠️ <b>Theoretical Transfer Cost (Sans Code):</b> <span class="fee-alert">{parsed['Applied_Transfer_Fee']} RWF</span><br>
+        📈 <b>Running Balance:</b> {parsed['Balance']:,} RWF
+        </div>
+        """, unsafe_style_allowed=True)
+
+        if st.button("🚀 Commit To Normalized Accounting Ledger"):
+            if parsed["TxID"] == "NOT_FOUND" or parsed["Amount"] == 0:
+                st.error("Normalization Error: Key attributes missing.")
+            else:
+                st.session_state.extracted_tx_logs.append(parsed)
+                st.success("Transaction successfully structured.")
 
 with col_ledger:
-    st.subheader("3. Relational Central Database Ledger Audit Logs")
-    st.markdown("This view replicates the Bank Credit Officer's decoupled audit view. Zero raw phone numbers exist here.")
+    st.subheader("Structured Alternative Accounting Ledger")
+    st.markdown("This database simulates the clean structured view compiled for alternative credit scoring.")
     
-    if st.session_state.mafis_ledger:
-        df_ledger = pd.DataFrame(st.session_state.mafis_ledger)
-        st.dataframe(
-            df_ledger, 
-            use_container_width=True,
-            column_order=["Timestamp", "Security_Token", "Business_Sector", "Operational_Duration_Months", "Database_Status"]
-        )
-        
-        if st.button("🗑️ Clear Database State Logs"):
-            st.session_state.mafis_ledger = []
-            st.rerun()
-    else:
-        st.info("The central database ledger is currently empty. Awaiting secured transactions.")
+    if st.session_state.extracted_tx_logs:
+        st.dataframe(pd.DataFrame(st.session_state.extracted_tx_logs), use_container_width=True)
+        if st.button("🗑️ Reset Ledger"):
+            st.session_state.extracted_tx_logs = []
