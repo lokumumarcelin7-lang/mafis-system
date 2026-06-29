@@ -2,21 +2,107 @@ import streamlit as st
 import pandas as pd
 import re
 
-# --- CONFIGURATION DU SYSTÈME ---
+# --- CONFIGURATION DE LA PAGE ---
 st.set_page_config(
-    page_title="MAFIS - Core Pipeline", 
+    page_title="MAFIS - Core Terminal", 
     page_icon="🛡️", 
     layout="wide"
 )
 
-# Style CSS FinTech Professionnel
+# --- DESIGN SYSTEM PRESTIGE (CSS INJECTÉ) ---
 st.markdown("""
     <style>
-    .system-title {font-size: 30px; font-weight: bold; color: #1E3A8A; font-family: 'Arial';}
-    .compliance-badge {background-color: #E0F2FE; color: #0369A1; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: bold;}
-    .crypto-box {background-color: #F8FAFC; border: 1px solid #E2E8F0; padding: 15px; border-radius: 8px; font-family: 'Courier New';}
-    .regex-success {color: #10B981; font-weight: bold;}
-    .fee-alert {color: #EF4444; font-weight: bold;}
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    /* Application globale de la police Inter */
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
+        background-color: #F8FAFC;
+    }
+    
+    /* Bannière de Contrôle Principale */
+    .main-header {
+        background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%);
+        padding: 30px;
+        border-radius: 16px;
+        color: white;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1);
+    }
+    .system-title {
+        font-size: 28px; 
+        font-weight: 700; 
+        letter-spacing: -0.03em;
+        margin: 0 0 6px 0;
+    }
+    .compliance-badge {
+        background-color: rgba(255, 255, 255, 0.12); 
+        color: #38BDF8; 
+        padding: 6px 14px; 
+        border-radius: 30px; 
+        font-size: 12px; 
+        font-weight: 600;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    /* Conteneurs de blocs (Cards) */
+    .dashboard-card {
+        background-color: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        padding: 24px;
+        border-radius: 16px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+    }
+    
+    /* Terminal de Facturation / Reçu Décrypté */
+    .invoice-box {
+        background-color: #0F172A; 
+        border-left: 4px solid #3B82F6; 
+        padding: 20px; 
+        border-radius: 12px;
+        margin-top: 20px;
+        color: #E2E8F0;
+    }
+    .invoice-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #334155;
+        font-size: 14px;
+    }
+    .invoice-row:last-child {
+        border-bottom: none;
+    }
+    .inv-label { color: #94A3B8; font-weight: 500; }
+    .inv-val { font-weight: 600; font-family: 'Courier New', monospace; }
+    
+    .status-badge {
+        background-color: #1E293B;
+        color: #38BDF8;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+    
+    /* Optimisation des Boutons Streamlit */
+    div.stButton > button {
+        background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%) !important;
+        color: white !important;
+        border-radius: 10px !important;
+        padding: 12px 24px !important;
+        font-weight: 600 !important;
+        border: none !important;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2) !important;
+        transition: all 0.2s ease-in-out;
+        width: 100%;
+    }
+    div.stButton > button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3) !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -25,7 +111,7 @@ class SemanticExtractor:
     @staticmethod
     def calculate_transfer_fee(amount: int, is_airtel: bool) -> int:
         if is_airtel:
-            return 0  # Politique de gratuité Airtel Money Rwanda
+            return 0  # Airtel Money Rwanda Promotion (Gratuit)
         if amount < 10000:
             return 100
         elif amount < 150000:
@@ -35,45 +121,33 @@ class SemanticExtractor:
 
     @staticmethod
     def parse_sms(sms_text: str):
-        # Normalisation absolue : remplace les espaces insécables (\xa0) et espaces multiples par un espace standard
         cleaned_sms = re.sub(r'\s+', ' ', sms_text).strip()
         sms_lower = cleaned_sms.lower()
         
-        # Détection de l'écosystème réseau
         is_airtel = any(x in sms_lower for x in ["txn id", "tid", "new balance", "bal rwf"])
 
-        # Fonction de nettoyage numérique ultra-robuste contre le crash ValueError
         def safe_int_extract(regex_pattern, text):
             match = re.search(regex_pattern, text, re.IGNORECASE)
             if match and match.group(1):
-                # Supprime absolument tout ce qui n'est pas un chiffre (lettres, espaces, virgules)
                 digits = re.sub(r'\D', '', match.group(1))
                 return int(digits) if digits else 0
             return 0
 
-        # 1. Extraction du Identifiant Unique (TxID / TID)
         txid_match = re.search(r"(?:FT\s*Id|TxId|Txn\s*ID|TID)[:\s]+([A-Za-z0-9\.\-]+)", cleaned_sms, re.IGNORECASE)
         txid = txid_match.group(1) if txid_match else "NOT_FOUND"
         
-        # 2. Extraction du Montant (Amount) avec gestion des structures directes et inversées
         amount = safe_int_extract(r"(?:received|transaction of|payment of|amt)[:\s]+(?:rwf)?\s*([0-9\s, ]+)", cleaned_sms)
         if amount == 0:
-            # Fallback pour le format Airtel/MTN inversé: "3000 RWF transferred"
             amount = safe_int_extract(r"([0-9\s, ]+)\s*rwf\s+transferred", cleaned_sms)
 
-        # 3. Extraction du Solde Courant (Running Balance)
         balance = safe_int_extract(r"(?:balance is|balance:|bal)[:\s]+(?:rwf)?\s*([0-9\s, ]+)", cleaned_sms)
-
-        # 4. Extraction des Frais Déclarés (Stated Fee)
         extracted_fee = safe_int_extract(r"fee[:\s]+(?:rwf)?\s*([0-9\s, ]+)", cleaned_sms)
         
-        # 5. Extraction de la Contrepartie (Counterparty) - Pivot pour le Credit Scoring
-        counterparty = "Unknown Ecosystem"
-        cp_match = re.search(r"(?:from|to|by|sent to)\s+([A-Za-z\s]+)(?:\(|at|was|in\s|via|\d|$)", cleaned_sms, re.IGNORECASE)
+        counterparty = "Ecosystem Internal"
+        cp_match = re.search(r"(?:from|to|by|sent to)\s+([A-Za-z\s\.0-9]+)(?:\(|at|was|in\s|via|\d|$)", cleaned_sms, re.IGNORECASE)
         if cp_match:
             counterparty = cp_match.group(1).replace("Ltd", "").strip()
 
-        # 6. Catégorisation Sémantique
         if "received" in sms_lower:
             tx_type = "Cash In (Réception)"
             transfer_fee = 0
@@ -88,32 +162,54 @@ class SemanticExtractor:
             "TxID": txid,
             "Operator": "Airtel Money" if is_airtel else "MTN MoMo",
             "Type": tx_type,
-            "Counterparty": counterparty if counterparty else "Internal Network",
+            "Counterparty": counterparty if counterparty else "Ecosystem Internal",
             "Amount": amount,
             "SMS_Stated_Fee": extracted_fee,
             "Applied_Transfer_Fee": transfer_fee,
             "Balance": balance
         }
 
-# --- INITIALISATION DE LA SESSION ---
+# --- TRACKING DE LA BASE DE DONNÉES EN MÉMOIRE ---
 if "extracted_tx_logs" not in st.session_state:
     st.session_state.extracted_tx_logs = []
 
-# --- INTERFACE ---
-st.markdown('<div class="system-title">🛡️ MAFIS Architectural Pipeline — Phase 2 Pro</div>', unsafe_allow_html=True)
-st.markdown('<span class="compliance-badge">🇷🇼 Production Grade - Anti-Crash Pattern Matching & Multi-Operator Calibration</span>', unsafe_allow_html=True)
-st.markdown("---")
+# --- EN-TÊTE IMMERSIF (CONSOL FINTECH) ---
+st.markdown("""
+    <div class="main-header">
+        <div class="system-title">🛡️ MAFIS Architectural Terminal — Version 2.4</div>
+        <span class="compliance-badge">🇷🇼 Production Engine — Kigali Mobile Networks Calibrated</span>
+    </div>
+    """, unsafe_allow_html=True)
 
-col_sms, col_ledger = st.columns([1, 1.2])
+# --- BLOC KPI ANALYTICS DYNAMIQUE ---
+# Calcule les données agrégées en arrière-plan pour rendre l'interface ultra-efficace
+logs = st.session_state.extracted_tx_logs
+total_tx = len(logs)
+total_volume = sum(item['Amount'] for item in logs)
+last_balance = logs[-1]['Balance'] if logs else 0
+
+kpi1, kpi2, kpi3 = st.columns(3)
+with kpi1:
+    st.metric(label="Total Ingested Volume", value=f"{total_volume:,} RWF", delta=f"{total_tx} Extracted Blocks")
+with kpi2:
+    st.metric(label="Simulated Account Balance", value=f"{last_balance:,} RWF")
+with kpi3:
+    st.metric(label="Ecosystem Infrastructure", value="Multi-Agent Core", delta="Active Gateway", delta_color="normal")
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# --- ZONE DE TRAVAIL PRINCIPALE ---
+col_sms, col_ledger = st.columns([1, 1.3])
 
 with col_sms:
-    st.subheader("Raw Text Stream Ingestion")
+    st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
+    st.subheader("📥 Data Stream Ingestion")
     
     sample_type = st.selectbox(
-        "Select Live Kigali Feed Template:",
+        "Select Live Network Stream Template :",
         [
-            "Custom / Paste Text",
-            "Airtel 1: Réception felix (500 RWF)",
+            "Custom Feed / Paste Text",
+            "Airtel 1: Réception Felix (500 RWF)",
             "Airtel 2: Envoi Fransine (2 000 RWF)",
             "MTN 1: FUTURE DYNAMIC (Marchand)",
             "MTN 2: Honorine ABIJURU (Réception)",
@@ -123,7 +219,7 @@ with col_sms:
     )
     
     templates = {
-        "Airtel 1: Réception felix (500 RWF)": "151*Txn ID CI260629.0959.B00815*R You have received RWF 500 from 727937980 niyoyandinze felix.Your NEW BALANCE is RWF 500. *EN#",
+        "Airtel 1: Réception Felix (500 RWF)": "151*Txn ID CI260629.0959.B00815*R You have received RWF 500 from 727937980 niyoyandinze felix.Your NEW BALANCE is RWF 500. *EN#",
         "Airtel 2: Envoi Fransine (2 000 RWF)": "*165* TID MP260531.0040.B02157*S* sent to Fransine NIWEMUGENI in MTN. Amt RWF 2000. Fee RWF 0. BAL RWF 2250. *EN#",
         "MTN 1: FUTURE DYNAMIC (Marchand)": "*164*S*Y'ello, A transaction of 500 RWF by FUTURE DYNAMIC INNOVATIONS (FDI) FUTURE DYNAMIC INLtd was completed at 2026-06-28 20:13:21. Balance:135963 RWF. Fee  0 RWF. FT Id: 28845768783.*EN#",
         "MTN 2: Honorine ABIJURU (Réception)": "You have received 10000 RWF from Honorine ABIJURU (*********510) at 2026-06-26 15:15:54 . Balance:172403 RWF. FT Id: 28794607448",
@@ -132,40 +228,51 @@ with col_sms:
     }
     
     current_sms = templates.get(sample_type, "")
-    sms_input = st.text_area("Paste Raw Operator SMS Stream:", value=current_sms, height=130)
+    sms_input = st.text_area("Paste Raw Mobile Money SMS Payload:", value=current_sms, height=130)
     
     if sms_input:
         parsed = SemanticExtractor.parse_sms(sms_input)
         
-        st.markdown("**Parser Extraction Output:**")
+        # Affichage sous forme de reçu de transaction ultra-élégant
         st.markdown(f"""
-        <div class="crypto-box">
-        🔑 <b>TxID Detected:</b> <span class="regex-success">{parsed['TxID']}</span><br>
-        📡 <b>Network Operator:</b> {parsed['Operator']}<br>
-        👤 <b>Counterparty Entity:</b> <b>{parsed['Counterparty']}</b><br>
-        📌 <b>Inferred Category:</b> <b>{parsed['Type']}</b><br>
-        💰 <b>Volume (Amount):</b> <span class="regex-success">{parsed['Amount']:,} RWF</span><br>
-        💸 <b>SMS Stated Fee:</b> {parsed['SMS_Stated_Fee']:,} RWF<br>
-        ⚠️ <b>Theoretical Cost (P2P):</b> <span class="fee-alert">{parsed['Applied_Transfer_Fee']:,} RWF</span><br>
-        📈 <b>Running Balance:</b> {parsed['Balance']:,} RWF
+        <div class="invoice-box">
+            <div style="font-weight:700; color:#F8FAFC; margin-bottom:12px; font-size:13px; text-transform:uppercase; letter-spacing:0.05em;">⚡ TELECOM EXTRACTOR OUTPUT</div>
+            <div class="invoice-row"><span class="inv-label">Transaction ID</span><span class="inv-val" style="color:#F59E0B;">{parsed['TxID']}</span></div>
+            <div class="invoice-row"><span class="inv-label">Network Carrier</span><span class="status-badge">{parsed['Operator']}</span></div>
+            <div class="invoice-row"><span class="inv-label">Inferred Category</span><span class="inv-val">{parsed['Type']}</span></div>
+            <div class="invoice-row"><span class="inv-label">Counterparty Entity</span><span class="inv-val" style="color:#38BDF8;">{parsed['Counterparty']}</span></div>
+            <div class="invoice-row"><span class="inv-label">Captured Volume</span><span class="inv-val regex-success">{parsed['Amount']:,} RWF</span></div>
+            <div class="invoice-row"><span class="inv-label">Operator Stated Fee</span><span class="inv-val">{parsed['SMS_Stated_Fee']:,} RWF</span></div>
+            <div class="invoice-row"><span class="inv-label">Shadow Transfer Cost</span><span class="inv-val fee-alert">{parsed['Applied_Transfer_Fee']:,} RWF</span></div>
+            <div class="invoice-row"><span class="inv-label">Post-Tx Balance</span><span class="inv-val" style="color:#A7F3D0;">{parsed['Balance']:,} RWF</span></div>
         </div>
         """, unsafe_allow_html=True)
 
+        st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🚀 Commit To Normalized Accounting Ledger"):
             if parsed["Amount"] == 0:
-                st.error("Normalization Error: Financial amount attribute missing.")
+                st.error("Normalization Error: Target attributes unreached.")
             else:
                 st.session_state.extracted_tx_logs.append(parsed)
-                st.success("Transaction successfully structured.")
+                st.rerun()
+                
+    st.markdown('</div>', unsafe_allow_html=True)
 
 with col_ledger:
-    st.subheader("Structured Alternative Accounting Ledger")
-    st.markdown("This database simulates the clean structured view compiled for alternative credit scoring.")
+    st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
+    st.subheader("📊 Structured Alternative Accounting Ledger")
+    st.markdown("Ce registre simule la base de données propre compilée pour l'analyse alternative du risque de crédit.")
     
     if st.session_state.extracted_tx_logs:
-        st.dataframe(pd.DataFrame(st.session_state.extracted_tx_logs), use_container_width=True)
-        if st.button("🗑️ Reset Ledger"):
+        df = pd.DataFrame(st.session_state.extracted_tx_logs)
+        # Tri des colonnes pour un rendu parfait dans le tableau
+        df_display = df[["TxID", "Operator", "Type", "Counterparty", "Amount", "SMS_Stated_Fee", "Applied_Transfer_Fee", "Balance"]]
+        st.dataframe(df_display, use_container_width=True, hide_index=True)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("🗑️ Reset Internal Ledger"):
             st.session_state.extracted_tx_logs = []
             st.rerun()
     else:
-        st.info("Awaiting live stream ingestion.")
+        st.info("Aucune donnée enregistrée. Injectez un flux réseau à gauche pour alimenter l'architecture de scoring.")
+    st.markdown('</div>', unsafe_allow_html=True)
