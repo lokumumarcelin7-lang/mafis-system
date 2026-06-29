@@ -3,17 +3,17 @@ import streamlit as st
 import pandas as pd
 from Collection_Agent_Parser import CollectionAgentParser
 
-# --- CONFIGURATION DE LA PAGE ---
+# --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="MAFIS - Core Terminal", 
     page_icon="🛡️", 
     layout="wide"
 )
 
-# --- DESIGN SYSTEM PRESTIGE CSS ---
+# --- FINTECH PREMIUM DESIGN SYSTEM (CSS INJECTION) ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&display=swap');
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; background-color: #F8FAFC; }
     .main-header {
         background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%);
@@ -51,7 +51,7 @@ st.markdown("""
 if "extracted_tx_logs" not in st.session_state:
     st.session_state.extracted_tx_logs = []
 
-# --- EN-TÊTE CONSOLE ---
+# --- TERMINAL HEADER ---
 st.markdown("""
     <div class="main-header">
         <div class="system-title">🛡️ MAFIS Architectural Terminal — Version 2.5 (Production)</div>
@@ -67,7 +67,7 @@ total_rra_tax = sum(item['RRA_Tax'] for item in logs if item["TxID"] != "FAILED_
 
 kpi1, kpi2, kpi3 = st.columns(3)
 with kpi1:
-    st.metric(label="Total Validated Ingested Volume", value=f"{total_volume:,} RWF", delta=f"{total_tx} Blocks Commited")
+    st.metric(label="Total Validated Ingested Volume", value=f"{total_volume:,} RWF", delta=f"{total_tx} Blocks Committed")
 with kpi2:
     st.metric(label="Total RRA Taxes Compiled", value=f"{total_rra_tax:,} RWF", delta="Consolidated Ledger")
 with kpi3:
@@ -75,7 +75,7 @@ with kpi3:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# --- ZONE PRINCIPALE ---
+# --- MAIN WORKSPACE WORKFLOW ---
 col_sms, col_ledger = st.columns([1, 1.3])
 
 with col_sms:
@@ -86,29 +86,29 @@ with col_sms:
         "Select Live Network Stream Template :",
         [
             "Custom Feed / Paste Text",
-            "Airtel 1: Réception Felix (500 RWF)",
-            "Airtel 2: Envoi Fransine (2 000 RWF)",
-            "MTN 1: FUTURE DYNAMIC (Marchand)",
-            "MTN 2: Honorine ABIJURU (Réception)",
-            "MTN 3: Enock TWIRINGIRIMANA (Transfert Sortant)",
-            "🚨 FRAUD TEST: Faux message ou préfixe invalide"
+            "Airtel 1: Cash In Felix (500 RWF)",
+            "Airtel 2: P2P Transfer Fransine (2,000 RWF)",
+            "MTN 1: FUTURE DYNAMIC (Merchant Payment)",
+            "MTN 2: Honorine ABIJURU (Cash In)",
+            "MTN 3: Enock TWIRINGIRIMANA (P2P Outgoing)",
+            "🚨 FRAUD TEST: Fake payload or invalid prefix architecture"
         ]
     )
     
     templates = {
-        "Airtel 1: Réception Felix (500 RWF)": "151*Txn ID CI260629.0959.B00815*R You have received RWF 500 from 727937980 niyoyandinze felix.Your NEW BALANCE is RWF 500. *EN#",
-        "Airtel 2: Envoi Fransine (2 000 RWF)": "*165* TID MP260531.0040.B02157*S* sent to Fransine NIWEMUGENI in MTN. Amt RWF 2000. Fee RWF 0. BAL RWF 2250. *EN#",
-        "MTN 1: FUTURE DYNAMIC (Marchand)": "*164*S*Y'ello, A transaction of 500 RWF by FUTURE DYNAMIC INNOVATIONS (FDI) FUTURE DYNAMIC INLtd was completed at 2026-06-28 20:13:21. Balance:135963 RWF. Fee  0 RWF. FT Id: 28845768783.*EN#",
-        "MTN 2: Honorine ABIJURU (Réception)": "You have received 10000 RWF from Honorine ABIJURU (*********510) at 2026-06-26 15:15:54 . Balance:172403 RWF. FT Id: 28794607448",
-        "MTN 3: Enock TWIRINGIRIMANA (Transfert Sortant)": "*165*S*3000 RWF transferred to Enock TWIRINGIRIMANA (250782993500) at 2026-06-26 19:44:12 .Fee: 100RWF.Balance: 168283RWF.*EN#",
-        "🚨 FRAUD TEST: Faux message ou préfixe invalide": "ATTENTION: Vous avez reçu 50000 RWF de la part de Bank of Kigali. Solde 54000 RWF. Pas de ID de transaction."
+        "Airtel 1: Cash In Felix (500 RWF)": "151*Txn ID CI260629.0959.B00815*R You have received RWF 500 from 727937980 niyoyandinze felix.Your NEW BALANCE is RWF 500. *EN#",
+        "Airtel 2: P2P Transfer Fransine (2,000 RWF)": "*165* TID MP260531.0040.B02157*S* sent to Fransine NIWEMUGENI in MTN. Amt RWF 2000. Fee RWF 0. BAL RWF 2250. *EN#",
+        "MTN 1: FUTURE DYNAMIC (Merchant Payment)": "*164*S*Y'ello, A transaction of 500 RWF by FUTURE DYNAMIC INNOVATIONS (FDI) FUTURE DYNAMIC INLtd was completed at 2026-06-28 20:13:21. Balance:135963 RWF. Fee  0 RWF. FT Id: 28845768783.*EN#",
+        "MTN 2: Honorine ABIJURU (Cash In)": "You have received 10000 RWF from Honorine ABIJURU (*********510) at 2026-06-26 15:15:54 . Balance:172403 RWF. FT Id: 28794607448",
+        "MTN 3: Enock TWIRINGIRIMANA (P2P Outgoing)": "*165*S*3000 RWF transferred to Enock TWIRINGIRIMANA (250782993500) at 2026-06-26 19:44:12 .Fee: 100RWF.Balance: 168283RWF.*EN#",
+        "🚨 FRAUD TEST: Fake payload or invalid prefix architecture": "ATTENTION: You have received 50000 RWF from Bank of Kigali. Balance 54000 RWF. No transaction tracking ID available."
     }
     
     current_sms = templates.get(sample_type, "")
     sms_input = st.text_area("Paste Raw Mobile Money SMS Payload:", value=current_sms, height=130)
     
     if sms_input:
-        # Appel de l'agent autonome découpé en Phase 2
+        # Link autonomous parser agent decoupled for Phase 2
         parsed = CollectionAgentParser.parse_sms(sms_input)
         
         is_rejected = parsed["TxID"] == "FAILED_QUAL_GATE"
@@ -130,7 +130,7 @@ with col_sms:
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🚀 Commit To Normalized Accounting Ledger") and not is_rejected:
             if parsed["Amount"] == 0:
-                st.error("Normalization Error: Target attributes unreached.")
+                st.error("Normalization Error: Target financial attributes unreached.")
             else:
                 st.session_state.extracted_tx_logs.append(parsed)
                 st.rerun()
@@ -140,9 +140,9 @@ with col_sms:
 with col_ledger:
     st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
     st.subheader("📊 Structured Alternative Accounting Ledger")
-    st.markdown("Ce registre simule la base de données propre et certifiée RRA compilée pour l'analyse multi-agent du risque de crédit.")
+    st.markdown("This ledger simulates the clean, verified data architecture used for alternative risk analysis and credit scoring calculation kernels.")
     
-    # Filtrer pour n'afficher que les lignes valides dans le grand livre de comptabilité alternative
+    # Filter validation history out of database view
     valid_logs = [x for x in st.session_state.extracted_tx_logs if x["TxID"] != "FAILED_QUAL_GATE"]
     
     if valid_logs:
@@ -155,5 +155,5 @@ with col_ledger:
             st.session_state.extracted_tx_logs = []
             st.rerun()
     else:
-        st.info("Aucune donnée enregistrée. Injectez un flux valide à gauche pour alimenter le grand livre comptable.")
+        st.info("No records committed. Ingest a valid stream on the left pane to populate the accounting ledger framework.")
     st.markdown('</div>', unsafe_allow_html=True)

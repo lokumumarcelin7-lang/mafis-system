@@ -4,31 +4,31 @@ import re
 class CollectionAgentParser:
     """
     MAFIS Core Component: Collection_Agent_Parser.py
-    Agent autonome responsable de l'ingestion sémantique, de la validation réglementaire
-    des taxes RRA et de l'activation des portes de qualité anti-fraude.
+    Autonomous agent responsible for semantic ingestion, regulatory RRA tax compliance 
+    calculations, and activating anti-fraud robustness quality gates.
     """
     
     @staticmethod
     def validate_quality_gate(sms_text: str) -> bool:
         """
-        🛑 PORTE DE QUALITÉ : Test de robustesse validé.
-        Filtre et rejette immédiatement les injections de faux formats, les SMS tronqués,
-        ou les flux de texte n'ayant pas les préfixes télécoms validés de Kigali (MTN/Airtel).
+        🛑 QUALITY GATE: Robustness Validation Test.
+        Immediately filters and rejects format injections, truncated payloads,
+        or unstructured text missing verified Kigali telecom network signatures (MTN/Airtel).
         """
         cleaned = sms_text.strip()
         
-        # 1. Liste des signatures de confiance indispensables au démarrage ou au cœur du payload
+        # 1. Trusted structural signatures required at payload initiation or core segments
         trusted_prefixes = [
-            r"^\*16[45]\*",               # Préfixes USSD MTN MoMo / Airtel (*165*, *164*)
-            r"^151\*Txn ID",              # Signature de reçu de paiement Airtel Money
-            r"^You have received",         # Notification standard d'entrée MTN MoMo
-            r"^TxId:",                    # Structure historique MTN Corporate
+            r"^\*16[45]\*",               # USSD MTN MoMo / Airtel Network Gateways (*165*, *164*)
+            r"^151\*Txn ID",              # Airtel Money Payment Receipt Signature
+            r"^You have received",         # MTN MoMo Standard Inbound Notification
+            r"^TxId:",                    # MTN Corporate Legacy Format Structure
         ]
         
-        # Validation de l'authenticité structurelle
+        # Validate structural authenticity
         is_authentic = any(re.search(pattern, cleaned, re.IGNORECASE) for pattern in trusted_prefixes)
         
-        # 2. Sécurité supplémentaire : rejeter si le flux contient des anomalies évidentes (trop court ou suspect)
+        # 2. Heuristic Check: Reject streams with anomaly flags (under minimum length or malicious strings)
         if len(cleaned) < 35 or "anti-fraud-trigger" in cleaned.lower():
             return False
             
@@ -37,21 +37,21 @@ class CollectionAgentParser:
     @staticmethod
     def calculate_rra_tax(amount: int, tx_type: str, operator_fee: int) -> float:
         """
-        ⚖️ RÉGLEMENTATION RRA (Rwanda Revenue Authority) :
-        Intégration des règles de calcul de la taxe sur l'argent mobile pour l'analyse MSME :
-        - 15% de taxe sur la valeur des commissions ou frais financiers facturés (Excise Duty / Financial Services Tax).
-        - 0.2% de prélèvement de conformité fiscale sur le volume des transactions commerciales (Merchant Payments) pour le scoring.
+        ⚖️ RRA REGULATION LAYER (Rwanda Revenue Authority):
+        Implements mobile money regulatory tax evaluation rules tailored for alternative MSME credit scoring:
+        - 15% Excise Duty / Financial Services Tax applied on the transaction service commissions.
+        - 0.2% Alternative Formalization Levy simulated on commercial trade volumes (Merchant Payments) for credit scoring context.
         """
         if amount <= 0:
             return 0.0
             
         rra_tax = 0.0
         
-        # Règle A : Taxe sur les frais de service financiers de transaction
+        # Rule A: Financial Services Excise Duty on transaction processing fees
         if operator_fee > 0:
             rra_tax += operator_fee * 0.15
             
-        # Règle B : Taxe de formalisation de l'activité commerciale (Pivot MAFIS de scoring alternatif)
+        # Rule B: Informal Sector Formalization Levy (MAFIS Alternative Scoring Core Pivot)
         if "Merchant Payment" in tx_type:
             rra_tax += amount * 0.002
             
@@ -60,9 +60,9 @@ class CollectionAgentParser:
     @staticmethod
     def parse_sms(sms_text: str):
         """
-        Pipeline principal d'extraction sémantique avec barrière de sécurité intégrée.
+        Main semantic extraction pipeline wrapped inside the system's security perimeter.
         """
-        # Exécution de la porte de qualité avant tout traitement
+        # Execute security gate check before resource allocation
         if not CollectionAgentParser.validate_quality_gate(sms_text):
             return {
                 "TxID": "FAILED_QUAL_GATE",
@@ -74,10 +74,10 @@ class CollectionAgentParser:
                 "Applied_Transfer_Fee": 0,
                 "RRA_Tax": 0.0,
                 "Balance": 0,
-                "Status": "🚨 REJETÉ : Préfixe ou Format Invalide"
+                "Status": "🚨 REJECTED: Invalid Stream Pattern or Network Signature"
             }
 
-        # Normalisation contre le bug des espaces insécables (\xa0)
+        # Normalize stream against non-breaking space variants (\xa0)
         cleaned_sms = re.sub(r'\s+', ' ', sms_text).strip()
         sms_lower = cleaned_sms.lower()
         
@@ -90,34 +90,34 @@ class CollectionAgentParser:
                 return int(digits) if digits else 0
             return 0
 
-        # Extraction de l'identifiant unique
+        # Extract unique Transaction Identifier
         txid_match = re.search(r"(?:FT\s*Id|TxId|Txn\s*ID|TID)[:\s]+([A-Za-z0-9\.\-]+)", cleaned_sms, re.IGNORECASE)
         txid = txid_match.group(1) if txid_match else "NOT_FOUND"
         
-        # Extraction du montant
+        # Extract transactional financial volume
         amount = safe_int_extract(r"(?:received|transaction of|payment of|amt)[:\s]+(?:rwf)?\s*([0-9\s, ]+)", cleaned_sms)
         if amount == 0:
             amount = safe_int_extract(r"([0-9\s, ]+)\s*rwf\s+transferred", cleaned_sms)
 
-        # Extraction du solde et des frais déclarés
+        # Extract post-transaction balance and operator fees
         balance = safe_int_extract(r"(?:balance is|balance:|bal)[:\s]+(?:rwf)?\s*([0-9\s, ]+)", cleaned_sms)
         extracted_fee = safe_int_extract(r"fee[:\s]+(?:rwf)?\s*([0-9\s, ]+)", cleaned_sms)
         
-        # Extraction du tiers (Contrepartie)
+        # Extract counterparty entity name
         counterparty = "Ecosystem Internal"
         cp_match = re.search(r"(?:from|to|by|sent to)\s+([A-Za-z\s\.0-9]+)(?:\(|at|was|in\s|via|\d|$)", cleaned_sms, re.IGNORECASE)
         if cp_match:
             counterparty = cp_match.group(1).replace("Ltd", "").strip()
 
-        # Qualification du type de flux
+        # Categorize financial data stream context
         if "received" in sms_lower:
-            tx_type = "Cash In (Réception)"
+            tx_type = "Cash In (Receipt)"
             transfer_fee = 0
         elif "payment of" in sms_lower or "by" in sms_lower:
-            tx_type = "Merchant Payment (Achat)"
+            tx_type = "Merchant Payment (Purchase)"
             transfer_fee = 0
         else:
-            tx_type = "P2P Transfer (Envoi)"
+            tx_type = "P2P Transfer (Sent)"
             if is_airtel:
                 transfer_fee = 0
             else:
@@ -125,7 +125,7 @@ class CollectionAgentParser:
                 elif amount < 150000: transfer_fee = 250
                 else: transfer_fee = 1500
 
-        # Application de la règle de calcul de la taxe RRA
+        # Calculate regulatory RRA obligations
         active_fee = extracted_fee if extracted_fee > 0 else transfer_fee
         rra_tax = CollectionAgentParser.calculate_rra_tax(amount, tx_type, active_fee)
 
@@ -139,5 +139,5 @@ class CollectionAgentParser:
             "Applied_Transfer_Fee": transfer_fee,
             "RRA_Tax": rra_tax,
             "Balance": balance,
-            "Status": "✅ Validé par Porte de Qualité"
+            "Status": "✅ Verified by Quality Gate"
         }
