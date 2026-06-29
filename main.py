@@ -20,15 +20,14 @@ st.markdown("""
     .regex-success {color: #10B981; font-weight: bold;}
     .fee-alert {color: #EF4444; font-weight: bold;}
     </style>
-    """, """, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 class SemanticExtractor:
-    """
-    Moteur d'expressions régulières (Regex) calibré pour les SMS de MTN MoMo et Airtel Money à Kigali.
-    """
+    # Moteur d'expressions régulières (Regex) calibré pour les SMS MTN / Airtel à Kigali
+    
     @staticmethod
     def calculate_p2p_transfer_fee(amount: int) -> int:
-        """Applique la grille tarifaire réelle du Rwanda pour les transferts directs (sans code)"""
+        # Applique la grille tarifaire réelle du Rwanda pour les transferts directs (sans code)
         if amount < 10000:
             return 100
         elif amount < 150000:
@@ -79,8 +78,8 @@ if "extracted_tx_logs" not in st.session_state:
     st.session_state.extracted_tx_logs = []
 
 # --- INTERFACE GRAPHIQUE ---
-st.markdown('<div class="system-title">🛡️ MAFIS Architectural Pipeline — Phase 2</div>', unsafe_style_allowed=True)
-st.markdown('<span class="compliance-badge">🇷🇼 Calibrated for Rwanda Telecom Regulations & Banking Standards</span>', unsafe_style_allowed=True)
+st.markdown('<div class="system-title">🛡️ MAFIS Architectural Pipeline — Phase 2</div>', unsafe_allow_html=True)
+st.markdown('<span class="compliance-badge">🇷🇼 Calibrated for Rwanda Telecom Regulations & Banking Standards</span>', unsafe_allow_html=True)
 st.markdown("---")
 
 col_sms, col_ledger = st.columns([1, 1.2])
@@ -115,7 +114,7 @@ with col_sms:
         ⚠️ <b>Theoretical Transfer Cost (Sans Code):</b> <span class="fee-alert">{parsed['Applied_Transfer_Fee']} RWF</span><br>
         📈 <b>Running Balance:</b> {parsed['Balance']:,} RWF
         </div>
-        """, unsafe_style_allowed=True)
+        """, unsafe_allow_html=True)
 
         if st.button("🚀 Commit To Normalized Accounting Ledger"):
             if parsed["TxID"] == "NOT_FOUND" or parsed["Amount"] == 0:
@@ -132,3 +131,6 @@ with col_ledger:
         st.dataframe(pd.DataFrame(st.session_state.extracted_tx_logs), use_container_width=True)
         if st.button("🗑️ Reset Ledger"):
             st.session_state.extracted_tx_logs = []
+            st.rerun()
+    else:
+        st.info("Awaiting live stream ingestion.")
