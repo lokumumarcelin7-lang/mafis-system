@@ -23,11 +23,10 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 class SemanticExtractor:
-    # Moteur d'expressions régulières (Regex) calibré pour les SMS MTN / Airtel à Kigali
+    # Moteur d'expressions régulières (Regex) adapté aux structures réelles de Kigali
     
     @staticmethod
     def calculate_p2p_transfer_fee(amount: int) -> int:
-        # Applique la grille tarifaire réelle du Rwanda pour les transferts directs (sans code)
         if amount < 10000:
             return 100
         elif amount < 150000:
@@ -37,9 +36,9 @@ class SemanticExtractor:
 
     @staticmethod
     def parse_sms(sms_text: str):
-        # Patterns Regex pour capturer les données clés dans les structures réelles reçues
+        # Regex améliorées pour détecter "received X RWF", "transaction of X RWF", etc.
         txid_match = re.search(r"(?:FT Id:|TxId:)\s*([A-Za-z0-9\-]+)", sms_text, re.IGNORECASE)
-        amount_match = re.search(r"(?:transaction of|payment of)\s*([0-9\s,]+)\s*RWF", sms_text, re.IGNORECASE)
+        amount_match = re.search(r"(?:received|transaction of|payment of)\s*([0-9\s,]+)\s*RWF", sms_text, re.IGNORECASE)
         balance_match = re.search(r"Balance:\s*([0-9\s,]+)\s*RWF", sms_text, re.IGNORECASE)
         fee_match = re.search(r"Fee\s*([0-9\s,]+)\s*RWF", sms_text, re.IGNORECASE)
 
@@ -53,8 +52,8 @@ class SemanticExtractor:
         balance = clean_int(balance_match)
         extracted_fee = clean_int(fee_match)
         
-        # Analyse sémantique intelligente de la nature du flux financier
-        if "received" in sms_text.lower() or "transaction of" in sms_text.lower():
+        # Analyse sémantique intelligente selon les mots-clés du message
+        if "received" in sms_text.lower():
             tx_type = "Cash In (Réception - Gratuit)"
             transfer_fee = 0
         elif "payment of" in sms_text.lower() and any(x in sms_text.lower() for x in ["ltd", "inc", "code"]):
