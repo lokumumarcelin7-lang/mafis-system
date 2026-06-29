@@ -20,7 +20,7 @@ st.markdown("""
     .regex-success {color: #10B981; font-weight: bold;}
     .fee-alert {color: #EF4444; font-weight: bold;}
     </style>
-    """, unsafe_style_allowed=True)
+    """, """, unsafe_allow_html=True)
 
 class SemanticExtractor:
     """
